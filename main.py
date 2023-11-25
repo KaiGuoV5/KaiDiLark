@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
- This is a sample Python project for lark robot.
- This project is executed when you run `python main.py`.
+    This is a sample Python project for lark robot.
+    This project is executed when you run `python main.py`.
 """
 import argparse
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask
 from typing import Any
@@ -17,9 +18,39 @@ from lark_oapi.adapter.flask import parse_req, parse_resp
 from lark_oapi.api.application.v6 import P2ApplicationBotMenuV6
 from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data
 
+import utils.robot as robot
+import lark.card as card
+
 app = Flask(__name__)
 
+executor = ThreadPoolExecutor(8)
+
 ROBOT_NAME = os.environ.get("ROBOT_NAME", "KaiDiLark")
+
+
+def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
+    """
+    This function handles private chat messages.
+    It receives an event_p2p object and extracts the text content from the message.
+    It then performs different actions based on the content of the text.
+    """
+    logger.debug("p2p text received")
+    msg_id = event_p2p.message.message_id
+    content = lark.json.loads(event_p2p.message.content)
+    text = content['text']
+    if text.split(' ')[0] == "id":
+        if event_p2p.message.mentions is None or len(event_p2p.message.mentions) < 1:
+            mentions = False
+            at_user_id = event_p2p.sender.sender_id.user_id
+            at_open_id = event_p2p.sender.sender_id.open_id
+        else:
+            mentions = True
+            at_user_id = event_p2p.message.mentions[0].id.user_id
+            at_open_id = event_p2p.message.mentions[0].id.open_id
+        robot.reply_card(msg_id, card.uid(at_user_id, at_open_id, mentions))
+        return
+    else:
+        robot.reply_text(msg_id, text)
 
 
 def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
@@ -36,7 +67,7 @@ def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
 
     if msg_type == 'text':
         if chat_type == 'p2p':
-            logger.debug("receive p2p message: {event_.message.content}")
+            executor.submit(handle_text_received_p2p, event_)
             return
         elif chat_type == 'group':
             pattern = re.compile(ROBOT_NAME)
@@ -62,11 +93,11 @@ def do_p2_application_bot_menu_v6(data: P2ApplicationBotMenuV6) -> None:
 
 
 def do_p2_im_chat_member_bot_added_v1(data: P2ImChatMemberBotAddedV1) -> None:
-    """ add this robot to a group """
+    """ event for add this robot to a group """
     if data.event is None:
         logger.error("robot add group data is None")
         return
-    logger.debug(f"robot add group: {data.event.chat_id}")
+    robot.send_card('chat_id', data.event.chat_id, card.hello())
 
 
 handler_event = lark.EventDispatcherHandler.builder(
@@ -93,13 +124,13 @@ handler_card = lark.CardActionHandler.builder(
 
 
 @app.route('/event', methods=['POST'])
-def event():
+def events():
     response = handler_event.do(parse_req())
     return parse_resp(response)
 
 
 @app.route('/card', methods=['POST'])
-def card():
+def cards():
     response = handler_card.do(parse_req())
     return parse_resp(response)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
- robot utils
+    robot apis
 """
 import os
 import json
@@ -17,7 +17,8 @@ from lark_oapi.api.im.v1 import (
     ReplyMessageRequest, ReplyMessageRequestBody, ReplyMessageResponse, ReplyMessageResponseBody,
     CreateChatRequest, CreateChatRequestBody, CreateChatResponse,
     CreateChatResponseBody, DeleteChatRequest, DeleteChatResponse, UpdateChatRequest, UpdateChatRequestBody,
-    UpdateChatResponse, UserId
+    UpdateChatResponse, UserId,
+    ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse
 )
 
 APP_ID = os.environ.get('APP_ID', '123456')
