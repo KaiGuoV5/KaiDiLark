@@ -49,6 +49,27 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             at_open_id = event_p2p.message.mentions[0].id.open_id
         robot.reply_card(msg_id, card.uid(at_user_id, at_open_id, mentions))
         return
+    if text.split(' ')[0] == "group":
+        if len(text.split(' ')) < 2:
+            robot.reply_text(msg_id, "group list/delete")
+            return
+        if text.split(' ')[1] == "list":
+            group_list: List[ListChat] = robot.get_group_list()
+            if len(group_list) != 0:
+                robot.reply_card(event_p2p.message.message_id, card.groups(group_list))
+            return
+        if text.split(' ')[1] == "delete":
+            cmd = text.split(' ')
+            if len(cmd) != 3:
+                robot.reply_text(event_p2p.message.message_id, "group delete <group_id>")
+                return
+            chat_id = cmd[2]
+            if robot.delete_group(chat_id):
+                robot.reply_text(event_p2p.message.message_id, "delete group success")
+            else:
+                robot.reply_text(event_p2p.message.message_id, "delete group failed")
+            return
+        return
 
 
 def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:

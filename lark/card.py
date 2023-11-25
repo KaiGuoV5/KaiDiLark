@@ -69,3 +69,57 @@ def uid(user_id: str, open_id: str, mentions: bool) -> dict:
             {"tag": "markdown", "content": open_id}
         ],
     }
+
+
+def groups(group_list: List[ListChat]):
+    """
+    Generates a group card based on the provided group list.
+
+    Args:
+        group_list (List[ListChat]): The list of groups.
+
+    Returns:
+        dict: The generated group card.
+    """
+    group_card = {
+        "config": {"wide_screen_mode": True},
+        "header": {"template": "blue", "title": {"content": "Groups", "tag": "plain_text"}},
+        "elements": [
+            {
+                "tag": "column_set", "flex_mode": "none", "background_style": "indigo",
+                "columns": [
+                    {
+                        "tag": "column", "width": "weighted", "weight": 2, "vertical_align": "top",
+                        "elements": [{"tag": "markdown", "content": "**🗳 NAME**"}]
+                    },
+                    {
+                        "tag": "column", "width": "weighted", "weight": 3, "vertical_align": "top",
+                        "elements": [{"tag": "markdown", "content": "**🆔 ID**"}]
+                    }
+                ]
+            }
+        ]
+    }
+    group: ListChat
+    for group in group_list:
+        if group.name is None:
+            group.name = ""
+        if group.chat_id is None:
+            group.chat_id = ""
+        new_fields = [
+            {
+                "tag": "column_set", "flex_mode": "none", "background_style": "grey",
+                "columns": [
+                    {
+                        "tag": "column", "width": "weighted", "weight": 2, "vertical_align": "top",
+                        "elements": [{"tag": "markdown", "content": group.name}]
+                    },
+                    {
+                        "tag": "column", "width": "weighted", "weight": 3, "vertical_align": "top",
+                        "elements": [{"tag": "markdown", "content": group.chat_id}]
+                    }
+                ]
+            }
+        ]
+        group_card["elements"].extend(new_fields)
+    return group_card
