@@ -14,8 +14,6 @@ from typing import Any
 import lark_oapi as lark
 from lark_oapi import logger
 from lark_oapi.adapter.flask import parse_req, parse_resp
-
-
 from lark_oapi.api.application.v6 import P2ApplicationBotMenuV6
 from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data
 
