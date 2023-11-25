@@ -49,8 +49,26 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             at_open_id = event_p2p.message.mentions[0].id.open_id
         robot.reply_card(msg_id, card.uid(at_user_id, at_open_id, mentions))
         return
-    else:
-        robot.reply_text(msg_id, text)
+
+
+def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
+    """
+    This function handles group chat messages.
+    It receives an event_group object and extracts the text content from the message.
+    It then performs different actions based on the content of the text.
+    """
+    logger.debug("group text received")
+    msg_id = event_group.message.message_id
+    content = lark.json.loads(event_group.message.content)
+    text = content['text']
+    if len(text.split(' ')) < 2:
+        logger.error("invalid text")
+        robot.reply_text(msg_id, "What can I do for you?")
+        return
+    cmd = text.split(' ')[1:]
+    if cmd.split(' ')[0] == "id":
+        robot.reply_text(msg_id, "group ID: " + event_group.message.chat_id)
+        return
 
 
 def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
@@ -74,7 +92,7 @@ def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
             if mentions is None or re.search(pattern, mentions[0].name) is None:
                 logger.error(f"this message not for robot: {event_.message.content}")
                 return
-            logger.debug("receive group message: {event_.message.content}")
+            executor.submit(handle_text_received_group, event_)
             return
         else:
             logger.error("not support chat type: {chat_type}")
