@@ -18,6 +18,7 @@ from lark_oapi.adapter.flask import parse_req, parse_resp
 from lark_oapi.api.application.v6 import P2ApplicationBotMenuV6
 from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data
 
+from utils.config import app_config
 import utils.robot as robot
 import lark.card as card
 
@@ -109,7 +110,7 @@ def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
             executor.submit(handle_text_received_p2p, event_)
             return
         elif chat_type == 'group':
-            pattern = re.compile(ROBOT_NAME)
+            pattern = re.compile(app_config().ROBOT_NAME)
             if mentions is None or re.search(pattern, mentions[0].name) is None:
                 logger.error(f"this message not for robot: {event_.message.content}")
                 return
@@ -140,8 +141,8 @@ def do_p2_im_chat_member_bot_added_v1(data: P2ImChatMemberBotAddedV1) -> None:
 
 
 handler_event = lark.EventDispatcherHandler.builder(
-    lark.ENCRYPT_KEY,
-    lark.VERIFICATION_TOKEN,
+    app_config().ENCRYPT_KEY,
+    app_config().VERIFICATION_TOKEN,
     lark.LogLevel.DEBUG) \
     .register_p2_im_message_receive_v1(do_p2_im_message_receive_v1) \
     .register_p2_application_bot_menu_v6(do_p2_application_bot_menu_v6) \
@@ -156,8 +157,8 @@ def do_interactive_card(data: lark.Card) -> Any:
 
 
 handler_card = lark.CardActionHandler.builder(
-    lark.ENCRYPT_KEY,
-    lark.VERIFICATION_TOKEN,
+    app_config().ENCRYPT_KEY,
+    app_config().VERIFICATION_TOKEN,
     lark.LogLevel.DEBUG) \
     .register(do_interactive_card).build()
 

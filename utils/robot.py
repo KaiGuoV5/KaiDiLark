@@ -21,6 +21,8 @@ from lark_oapi.api.im.v1 import (
     ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse
 )
 
+from utils.config import app_config
+
 APP_ID = os.environ.get('APP_ID', '123456')
 APP_SECRET = os.environ.get('APP_SECRET', '123456')
 
@@ -33,9 +35,9 @@ def __create_client():
         The configured Lark client.
     """
     client = lark.Client.builder() \
-        .app_id(APP_ID) \
-        .app_secret(APP_SECRET) \
-        .log_level(lark.LogLevel.INFO) \
+        .app_id(app_config().APP_ID) \
+        .app_secret(app_config().APP_SECRET) \
+        .log_level(lark.LogLevel.DEBUG) \
         .build()
     return client
 

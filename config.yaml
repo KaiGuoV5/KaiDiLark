@@ -1,0 +1,7 @@
+---
+# ROBOT config
+ROBOT_NAME: xxx
+APP_ID: cli_xxx
+APP_SECRET: xxx
+ENCRYPT_KEY: xxx
+VERIFICATION_TOKEN: xxx
