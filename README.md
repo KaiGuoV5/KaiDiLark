@@ -19,12 +19,4 @@ KaiDiLark is a project base on lark's robot
 
 First, enable your lark robot step by step through [Lark Website](https://www.larksuite.com/hc/en-US/articles/360048487780-use-lark-flow-to-send-messages-as-a-bot)
 
-Then, Set environment variables: ROBOT_NAME, ENCRYPT_KEY, VERIFICATION_TOKEN, APP_ID, APP_SECRET.
-
-```shell
-export ROBOT_NAME="XXX"
-export ENCRYPT_KEY="XXX"
-export VERIFICATION_TOKEN="XXX"
-export APP_ID="XXX"
-export APP_SECRET="XXX"
-```
+Then, Set environment variables: ROBOT_NAME, ENCRYPT_KEY, VERIFICATION_TOKEN, APP_ID, APP_SECRET to `config.yaml`.
