@@ -10,13 +10,13 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask
-from typing import Any
+from typing import Any, List
 
 import lark_oapi as lark
 from lark_oapi import logger
 from lark_oapi.adapter.flask import parse_req, parse_resp
 from lark_oapi.api.application.v6 import P2ApplicationBotMenuV6
-from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data
+from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data, ListChat
 
 from utils.config import app_config
 import utils.robot as robot
@@ -88,7 +88,7 @@ def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
         robot.reply_text(msg_id, "What can I do for you?")
         return
     cmd = text.split(' ')[1:]
-    if cmd.split(' ')[0] == "id":
+    if cmd[0] == "id":
         robot.reply_text(msg_id, "group ID: " + event_group.message.chat_id)
         return
 
