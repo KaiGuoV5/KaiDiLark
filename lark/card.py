@@ -42,6 +42,20 @@ def hello():
     }
 
 
+def markdown(content):
+    return {
+        "config": {
+            "wide_screen_mode": True
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {"tag": "lark_md", "content": content}
+            }
+        ]
+    }
+
+
 def uid(user_id: str, open_id: str, mentions: bool) -> dict:
     """
     Generates a dictionary containing user ID details.
@@ -142,3 +156,171 @@ def answer(content, fresh=False):
         ]
         answer_card["elements"].extend(fresh_msg)
     return answer_card
+
+
+def work_order_build():
+    """  build work order card """
+    return {
+        "config": {"wide_screen_mode": True},
+        "header": {"template": "blue", "title": {"content": "Work Order", "tag": "plain_text"}},
+        "elements": [
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {"content": "Artificial Service", "tag": "plain_text"},
+                        "type": "primary",
+                        "value": {
+                            "action": "work_order",
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+
+def work_order_show(chats_name: str, user_id: str, assist_id: str, description: str):
+    now = datetime.datetime.now()
+    localtime = now.strftime("%Y-%m-%d %H:%M:%S")
+    create_time = f"🕗︎ **Create      : **{localtime}"
+    applicant = f"🗣 **Applicant   : **<at id={user_id}></at>"
+    operator = f"👨‍🔧 **Operator    : **<at id={assist_id}></at>"
+    order_content = f"🔖 **Description : **{description}"
+    work_order_show_card = {
+        "config": {"wide_screen_mode": True},
+        "header": {"template": "turquoise", "title": {"content": f"🚨 {chats_name}", "tag": "plain_text"}},
+        "elements": [
+            {
+                "tag": "div",
+                "fields": [
+                    {"is_short": False, "text": {"tag": "lark_md", "content": create_time}},
+                    {"is_short": False, "text": {"tag": "lark_md", "content": applicant}},
+                    {"is_short": False, "text": {"tag": "lark_md", "content": operator}},
+                ]
+            },
+            {"tag": "hr"},
+            {"tag": "div", "text": {"tag": "lark_md", "content": order_content}}
+        ]
+    }
+    return work_order_show_card
+
+
+WORK_ORDER_LIST = [
+    {
+        "value": "permission",
+        "content": "Access Request",
+        "order_list": [
+            {"content": "OTA", "value": "permission_ota"},
+            {"content": "DIY", "value": "permission_diy"},
+        ]
+    },
+    {
+        "value": "bug",
+        "content": "Bug Feedback",
+        "order_list": [
+            {"content": "platform bug", "value": "bug_platform"},
+            {"content": "integration bug", "value": "bug_integration"},
+        ]
+    },
+    {
+        "value": "other",
+        "content": "Others",
+        "order_list": [
+            {"content": "Other Work Order", "value": "other_work_order"},
+        ]
+    }
+]
+
+
+def work_order_select():
+    """选择工单类型"""
+    select_card = {
+        "config": {"wide_screen_mode": True},
+        "header": {"template": "blue", "title": {"content": "Choose Service", "tag": "plain_text"}},
+        "elements": [
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "select_static",
+                        "placeholder": {"content": "Choose Service", "tag": "plain_text"},
+                        "value": {"action": "work_order_type"},
+                        "options": []
+                    }
+                ]
+            }
+        ]
+    }
+
+    for i in WORK_ORDER_LIST:
+        content = i["content"]
+        value = i["value"]
+        select_card["elements"][0]["actions"][0]["options"].append({
+            "text": {"content": content, "tag": "plain_text"}, "value": value
+        })
+    return select_card
+
+
+def work_order_list(work_order_type):
+    """工单类型子列表"""
+    list_card = {
+        "config": {"wide_screen_mode": True},
+        "header": {"template": "blue", "title": {"content": "Choose Service", "tag": "plain_text"}},
+        "elements": [
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "select_static",
+                        "placeholder": {"content": "Choose Service", "tag": "plain_text"},
+                        "value": {"action": "work_order_submit"},
+                        "options": [],
+                        "confirm": {
+                            "title": {"content": "Confirm Service", "tag": "plain_text"},
+                            "text": {"content": "Continue to submit?", "tag": "plain_text"},
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    for i in WORK_ORDER_LIST:
+        if i["value"] == work_order_type:
+            list_card["elements"][0]["actions"][0]["placeholder"]["content"] = f"Choose {i['content']} Type"
+            for j in i["order_list"]:
+                content = j["content"]
+                value = j["value"]
+                list_card["elements"][0]["actions"][0]["options"].append({
+                    "text": {"content": content, "tag": "plain_text"}, "value": value
+                })
+    return list_card
+
+
+def work_order_how(operator):
+    return {
+        "config": {
+            "wide_screen_mode": True
+        },
+        "elements": [
+            {
+                "extra": {
+                    "tag": "button",
+                    "text": {
+                        "content": "🙋 DONE",
+                        "tag": "lark_md"
+                    },
+                    "type": "primary",
+                    "value": {
+                        "action": "done"
+                    }
+                },
+                "tag": "div",
+                "text": {
+                    "content": f"<at id={operator}></at>What's going on now? 😛 If done please click  👉",
+                    "tag": "lark_md"},
+            },
+        ]
+    }

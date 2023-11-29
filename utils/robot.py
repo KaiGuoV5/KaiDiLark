@@ -19,7 +19,8 @@ from lark_oapi.api.im.v1 import (
     CreateChatResponseBody, DeleteChatRequest, DeleteChatResponse, UpdateChatRequest, UpdateChatRequestBody,
     UpdateChatResponse, UserId,
     ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse,
-    PatchMessageRequest, PatchMessageRequestBody, PatchMessageResponse
+    PatchMessageRequest, PatchMessageRequestBody, PatchMessageResponse, GetChatRequest, GetChatResponse,
+    GetChatResponseBody
 )
 
 from utils.config import app_config
@@ -212,6 +213,35 @@ def create_group(chat_name: str, id_list: list, chat_description: str) -> Create
     if not response.success():
         logger.error(
             f"create group failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+        )
+
+    # Return the response data
+    return response.data
+
+
+def get_group_info(chat_id: str) -> GetChatResponseBody:
+    """
+    Retrieves information about a group chat.
+
+    Args:
+        chat_id (str): The ID of the group chat.
+
+    Returns:
+        GetChatResponseBody: The response body of the get chat API.
+    """
+    # Create a client
+    cli = __create_client()
+
+    # Build the request object
+    request: GetChatRequest = GetChatRequest.builder().chat_id(chat_id).user_id_type('user_id').build()
+
+    # Send the get chat request
+    response: GetChatResponse = cli.im.v1.chat.get(request)
+
+    # Check if the get chat request was successful
+    if not response.success():
+        logger.error(
+            f"get group info failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
         )
 
     # Return the response data

@@ -8,3 +8,6 @@ VERIFICATION_TOKEN: xxx
 
 # Chat Module
 CHAT_KEY: xxx,xxx
+
+# Word Module
+ORDER_ASSISTANT: xxx
