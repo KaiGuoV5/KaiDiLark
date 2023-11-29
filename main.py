@@ -21,6 +21,7 @@ from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, 
 from utils.config import app_config
 import utils.robot as robot
 import lark.card as card
+import lark.chat as chat
 
 app = Flask(__name__)
 
@@ -67,6 +68,8 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             robot.reply_text(event_p2p.message.message_id, ret_msg)
             return
         return
+
+    chat.get_gpt3_response(msg_id, text)
 
 
 def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:

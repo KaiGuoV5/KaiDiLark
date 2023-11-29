@@ -18,7 +18,8 @@ from lark_oapi.api.im.v1 import (
     CreateChatRequest, CreateChatRequestBody, CreateChatResponse,
     CreateChatResponseBody, DeleteChatRequest, DeleteChatResponse, UpdateChatRequest, UpdateChatRequestBody,
     UpdateChatResponse, UserId,
-    ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse
+    ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse,
+    PatchMessageRequest, PatchMessageRequestBody, PatchMessageResponse
 )
 
 from utils.config import app_config

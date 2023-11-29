@@ -123,3 +123,22 @@ def groups(group_list: List[ListChat]):
         ]
         group_card["elements"].extend(new_fields)
     return group_card
+
+
+def answer(content, fresh=False):
+    answer_card = {
+        "config": {
+            "wide_screen_mode": True
+        },
+        "elements": [
+            {"tag": "div", "text": {"tag": "lark_md", "content": content}},
+        ]
+    }
+
+    if fresh:
+        fresh_msg = [
+            {"tag": "hr"},
+            {"tag": "div", "text": {"tag": "lark_md", "content": "<font color='green'>Loading...</font>"}},
+        ]
+        answer_card["elements"].extend(fresh_msg)
+    return answer_card
