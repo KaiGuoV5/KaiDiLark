@@ -39,36 +39,32 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
     msg_id = event_p2p.message.message_id
     content = lark.json.loads(event_p2p.message.content)
     text = content['text']
-    if text.split(' ')[0] == "id":
-        if event_p2p.message.mentions is None or len(event_p2p.message.mentions) < 1:
-            mentions = False
-            at_user_id = event_p2p.sender.sender_id.user_id
-            at_open_id = event_p2p.sender.sender_id.open_id
-        else:
-            mentions = True
-            at_user_id = event_p2p.message.mentions[0].id.user_id
-            at_open_id = event_p2p.message.mentions[0].id.open_id
+
+    command, *cmd_args = text.split()
+
+    if command == "id":
+        mentions = event_p2p.message.mentions is not None and len(event_p2p.message.mentions) >= 1
+        at_user_id = event_p2p.sender.sender_id.user_id if not mentions else event_p2p.message.mentions[0].id.user_id
+        at_open_id = event_p2p.sender.sender_id.open_id if not mentions else event_p2p.message.mentions[0].id.open_id
         robot.reply_card(msg_id, card.uid(at_user_id, at_open_id, mentions))
         return
-    if text.split(' ')[0] == "group":
-        if len(text.split(' ')) < 2:
-            robot.reply_text(msg_id, "group list/delete")
+
+    if command == "group":
+        if len(cmd_args) < 1:
+            robot.reply_text(msg_id, "/group list/delete")
             return
-        if text.split(' ')[1] == "list":
+        sub_command = cmd_args[0]
+        if sub_command == "list":
             group_list: List[ListChat] = robot.get_group_list()
-            if len(group_list) != 0:
-                robot.reply_card(event_p2p.message.message_id, card.groups(group_list))
+            robot.reply_card(event_p2p.message.message_id, card.groups(group_list))
             return
-        if text.split(' ')[1] == "delete":
-            cmd = text.split(' ')
-            if len(cmd) != 3:
+        if sub_command == "delete":
+            if len(cmd_args) != 2:
                 robot.reply_text(event_p2p.message.message_id, "group delete <group_id>")
                 return
-            chat_id = cmd[2]
-            if robot.delete_group(chat_id):
-                robot.reply_text(event_p2p.message.message_id, "delete group success")
-            else:
-                robot.reply_text(event_p2p.message.message_id, "delete group failed")
+            chat_id = cmd_args[1]
+            ret_msg = "delete group failed" if not robot.delete_group(chat_id) else "delete group success"
+            robot.reply_text(event_p2p.message.message_id, ret_msg)
             return
         return
 
@@ -80,16 +76,18 @@ def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
     It then performs different actions based on the content of the text.
     """
     logger.debug("group text received")
-    msg_id = event_group.message.message_id
-    content = lark.json.loads(event_group.message.content)
+    message = event_group.message
+    msg_id = message.message_id
+    content = lark.json.loads(message.content)
     text = content['text']
-    if len(text.split(' ')) < 2:
+    words = text.split()
+    if len(words) < 2:
         logger.error("invalid text")
         robot.reply_text(msg_id, "What can I do for you?")
         return
-    cmd = text.split(' ')[1:]
+    cmd = words[1:]
     if cmd[0] == "id":
-        robot.reply_text(msg_id, "group ID: " + event_group.message.chat_id)
+        robot.reply_text(msg_id, event_group.message.chat_id)
         return
 
 
@@ -105,23 +103,24 @@ def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1) -> None:
     msg_type = event_.message.message_type
     mentions = event_.message.mentions
 
-    if msg_type == 'text':
-        if chat_type == 'p2p':
-            executor.submit(handle_text_received_p2p, event_)
-            return
-        elif chat_type == 'group':
-            pattern = re.compile(app_config().ROBOT_NAME)
-            if mentions is None or re.search(pattern, mentions[0].name) is None:
-                logger.error(f"this message not for robot: {event_.message.content}")
-                return
-            executor.submit(handle_text_received_group, event_)
-            return
-        else:
-            logger.error("not support chat type: {chat_type}")
-            return
-    else:
+    if msg_type != 'text':
         logger.error("not support message type: {msg_type}")
         return
+
+    if chat_type == 'p2p':
+        executor.submit(handle_text_received_p2p, event_)
+        return
+
+    if chat_type == 'group':
+        pattern = re.compile(app_config().ROBOT_NAME)
+        if mentions is None or re.search(pattern, mentions[0].name) is None:
+            logger.error(f"this message not for robot: {event_.message.content}")
+            return
+        executor.submit(handle_text_received_group, event_)
+        return
+
+    logger.error("not support chat type: {chat_type}")
+    return
 
 
 def do_p2_application_bot_menu_v6(data: P2ApplicationBotMenuV6) -> None:
