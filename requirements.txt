@@ -2,3 +2,5 @@ flask~=3.0.0
 lark-oapi
 pyyaml
 openai~=0.28.0
+flask_apscheduler
+APScheduler~=3.10.4

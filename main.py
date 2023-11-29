@@ -7,9 +7,12 @@
 import argparse
 import os
 import re
+
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask
+from flask_apscheduler import APScheduler
+from apscheduler.triggers.cron import CronTrigger
 from typing import Any, List
 
 import lark_oapi as lark
@@ -22,10 +25,14 @@ from utils.config import app_config
 import utils.robot as robot
 import lark.card as card
 import lark.chat as chat
+import lark.work_order as order
+import store.db_order as db_order
 
 app = Flask(__name__)
 
 executor = ThreadPoolExecutor(8)
+
+scheduler = APScheduler()
 
 ROBOT_NAME = os.environ.get("ROBOT_NAME", "KaiDiLark")
 
@@ -52,7 +59,7 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
 
     if command == "group":
         if len(cmd_args) < 1:
-            robot.reply_text(msg_id, "/group list/delete")
+            robot.reply_text(msg_id, "group list/delete")
             return
         sub_command = cmd_args[0]
         if sub_command == "list":
@@ -67,6 +74,10 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             ret_msg = "delete group failed" if not robot.delete_group(chat_id) else "delete group success"
             robot.reply_text(event_p2p.message.message_id, ret_msg)
             return
+        return
+
+    if command == "order":
+        order.reply(msg_id)
         return
 
     chat.get_gpt3_response(msg_id, text)
@@ -90,7 +101,16 @@ def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
         return
     cmd = words[1:]
     if cmd[0] == "id":
-        robot.reply_text(msg_id, event_group.message.chat_id)
+        robot.reply_text(msg_id, message.chat_id)
+        return
+    if cmd[0] == "done" or cmd[0] == "close":
+        order.done(message.chat_id)
+        return
+    if cmd[0] == "operator":
+        if len(cmd) != 2:
+            robot.reply_text(msg_id, "operator <@operator>")
+            return
+        order.change_operator(message.chat_id, event_group.sender.sender_id.user_id, message.mentions[1].id.user_id)
         return
 
 
@@ -156,6 +176,20 @@ def do_interactive_card(data: lark.Card) -> Any:
     """card event"""
     data_str = lark.JSON.marshal(data)
     logger.debug("receive card\n" + data_str)
+    action = data.action
+    action_value = action.value
+    action_val_str = lark.JSON.marshal(action_value)
+    action_val_json = lark.json.loads(action_val_str)
+    action_text = action_val_json["action"]
+    if action_text == "work_order":
+        logger.debug("work order select")
+        return card.work_order_select()
+    if action_text == "work_order_type":
+        logger.debug("work order type select")
+        return card.work_order_list(action.option)
+    if action_text == "work_order_submit":
+        logger.debug("work order submit")
+        executor.submit(order.build, data.user_id, action.option)
 
 
 handler_card = lark.CardActionHandler.builder(
@@ -181,4 +215,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', default=7788, type=int, help='port number')
     args = parser.parse_args()
+
+    db_order.init_db_if_required()
+
+    scheduler.init_app(app)
+    scheduler.add_job(id='check_order', func=order.check, trigger=CronTrigger.from_crontab('* 1-18 * * *'))
+    scheduler.start()
+
     app.run(host='0.0.0.0', port=args.port)

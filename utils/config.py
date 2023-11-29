@@ -16,6 +16,7 @@ class AppConfig:
     ENCRYPT_KEY: str
     VERIFICATION_TOKEN: str
     CHAT_KEY: str
+    ORDER_ASSISTANT: str
 
     @classmethod
     def from_dict(cls, env):
