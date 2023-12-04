@@ -145,16 +145,34 @@ def answer(content, fresh=False):
             "wide_screen_mode": True
         },
         "elements": [
+            {"tag": "div", "text": {"tag": "lark_md", "content": "根据您的提问，chatgpt给出的回答如下："}},
             {"tag": "div", "text": {"tag": "lark_md", "content": content}},
         ]
     }
-
     if fresh:
         fresh_msg = [
             {"tag": "hr"},
-            {"tag": "div", "text": {"tag": "lark_md", "content": "<font color='green'>Loading...</font>"}},
+            {"tag": "div", "text": {"tag": "lark_md", "content": "<font color='green'>正在努力加载...</font>"}},
         ]
         answer_card["elements"].extend(fresh_msg)
+    else:
+        artificial_msg = [
+            {"tag": "hr"},
+            {"tag": "div", "text": {"tag": "lark_md", "content": "如果需要人工服务，请点击 人工服务 按钮"}},
+            {
+                "tag": "action",
+                "layout": "bisected",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "人工服务"},
+                        "type": "primary",
+                        "value": {"action": "work_order"}
+                    }
+                ]
+            }
+        ]
+        answer_card["elements"].extend(artificial_msg)
     return answer_card
 
 
