@@ -75,11 +75,11 @@ def done(chat_id: str):
         logger.error(f"No this work order {chat_name}.")
         return
 
-    order_id = data[0]
+    order_id = data[3]
     applicant = data[2]
     robot.update_group_name(chat_id, chat_name_done)
     db_order.update_work_order_by_id(order_id, "status", True)
-    msg = f"<at id={applicant}></at> The work order has been completed."
+    msg = f"<at id={order_id}></at> 工单完成！\n<at id={applicant}></at>如果还有疑问请在此群继续提问。"
     robot.send_card("chat_id", chat_id, card.markdown(msg))
 
 
