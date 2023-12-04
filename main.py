@@ -75,7 +75,9 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             robot.reply_text(event_p2p.message.message_id, ret_msg)
             return
         return
-
+    if '人工' in command or '工单' in command:
+        card.answer("请先使用人工客服", fresh=False)
+        return
     if command == "order":
         order.reply(msg_id)
         return
