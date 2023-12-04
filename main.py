@@ -79,7 +79,9 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
     if command == "order":
         order.reply(msg_id)
         return
-
+    if '人工' in command or '工单' in command:
+        card.answer("请先使用人工客服", fresh=False)
+        return
     chat.get_gpt3_response(msg_id, text)
 
 
