@@ -60,8 +60,9 @@ def check():
         chat_id = result[1]
         operator = result[3]
         db_order.update_work_order_by_id(order_id, "deadline", DEFAULT_DEADLINE)
-        msg = f"<at id={operator}></at> What's going on now?"
-        robot.send_card("chat_id", chat_id, card.markdown(msg))
+        # msg = f"<at id={operator}></at> What's going on now?"
+        # robot.send_card("chat_id", chat_id, card.markdown(msg))
+        robot.send_card("chat_id", chat_id, card.how(operator))
 
 
 def done(chat_id: str):

@@ -76,7 +76,7 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
             return
         return
     if '人工' in command or '工单' in command:
-        card.answer("请先使用人工客服", fresh=False)
+        robot.reply_card(msg_id, card.answer("Waiting a moment...", fresh=False))
         return
     if command == "order":
         order.reply(msg_id)
@@ -183,6 +183,7 @@ def do_interactive_card(data: lark.Card) -> Any:
     action_val_str = lark.JSON.marshal(action_value)
     action_val_json = lark.json.loads(action_val_str)
     action_text = action_val_json["action"]
+    chat_id = data.open_chat_id
     if action_text == "work_order":
         logger.debug("work order select")
         return card.work_order_select()
@@ -192,6 +193,9 @@ def do_interactive_card(data: lark.Card) -> Any:
     if action_text == "work_order_submit":
         logger.debug("work order submit")
         executor.submit(order.build, data.user_id, action.option)
+    if action_text == "done":
+        logger.debug("done work")
+        order.done(chat_id)
 
 
 handler_card = lark.CardActionHandler.builder(

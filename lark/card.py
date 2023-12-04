@@ -315,3 +315,24 @@ def work_order_list(work_order_type):
                     "text": {"content": content, "tag": "plain_text"}, "value": value
                 })
     return list_card
+
+
+def how(user_id):
+    return {
+        "extra": {
+            "tag": "button",
+            "text": {
+                "content": "🙋 处理完成",
+                "tag": "lark_md"
+            },
+            "type": "primary",
+            "value": {
+                "action": "done"
+            }
+        },
+        "tag": "div",
+        "text": {
+            "content": f"<at id={user_id}></at>问题处理得怎么样了？😛  处理完记得点击  👉",
+            "tag": "lark_md"
+        }
+    }
