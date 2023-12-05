@@ -27,6 +27,7 @@ import lark.card as card
 import lark.chat as chat
 import lark.work_order as order
 import store.db_order as db_order
+import store.db_chat_p2p as db_chat_p2p
 
 app = Flask(__name__)
 
@@ -80,7 +81,21 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
         order.reply(msg_id)
         return
 
-    chat.get_gpt3_response(msg_id, text)
+    if command == "prompt":
+        if len(cmd_args) < 1:
+            robot.reply_text(msg_id, "prompt <text>")
+            return
+        text = " ".join(cmd_args)
+        chat.insert_prompt(event_p2p.sender.sender_id.user_id, text)
+        robot.reply_text(msg_id, "prompt success")
+        return
+
+    if command == "clear":
+        chat.clear_chat_p2p(event_p2p.sender.sender_id.user_id)
+        robot.reply_text(msg_id, "clear success")
+        return
+
+    chat.get_gpt3_response(event_p2p.sender.sender_id.user_id, msg_id, text)
 
 
 def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
@@ -220,6 +235,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     db_order.init_db_if_required()
+    db_chat_p2p.init_db_if_required()
 
     scheduler.init_app(app)
     scheduler.add_job(id='check_order', func=order.check, trigger=CronTrigger.from_crontab('* 1-18 * * *'))
