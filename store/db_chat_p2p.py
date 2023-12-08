@@ -19,6 +19,7 @@ class ChatP2PEvent:
 
     id: int
     user_id: str
+    model: str
     prompts: str
     content: str
     create_time: int
@@ -38,7 +39,8 @@ def init_db_if_required():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS chat_p2p (
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        user_id TEXT UNIQUE NOT NULL, 
+        user_id TEXT UNIQUE NOT NULL,
+        model TEXT,
         prompts TEXT, 
         content TEXT, 
         create_time TIMESTAMP, 
@@ -63,11 +65,12 @@ def insert_chat_p2p(chat_p2p: ChatP2PEvent):
         c.execute(
             """
             INSERT INTO chat_p2p
-            (user_id, prompts, content, create_time, update_time)
-            VALUES (?, ?, ?, ?, ?)
+            (user_id, model, prompts, content, create_time, update_time)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 chat_p2p.user_id,
+                chat_p2p.model,
                 chat_p2p.prompts,
                 chat_p2p.content,
                 chat_p2p.create_time,

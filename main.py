@@ -19,7 +19,10 @@ import lark_oapi as lark
 from lark_oapi import logger
 from lark_oapi.adapter.flask import parse_req, parse_resp
 from lark_oapi.api.application.v6 import P2ApplicationBotMenuV6
-from lark_oapi.api.im.v1 import P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data, ListChat
+from lark_oapi.api.im.v1 import (
+    P2ImChatMemberBotAddedV1, P2ImMessageReceiveV1, P2ImMessageReceiveV1Data, ListChat,
+    Message
+)
 
 from utils.config import app_config
 import utils.robot as robot
@@ -95,6 +98,15 @@ def handle_text_received_p2p(event_p2p: P2ImMessageReceiveV1Data) -> None:
         robot.reply_text(msg_id, "clear success")
         return
 
+    if command == "model":
+        if len(cmd_args) < 1:
+            robot.reply_text(msg_id, "model <text>")
+            return
+        text = " ".join(cmd_args)
+        chat.set_chat_model(event_p2p.sender.sender_id.user_id, text)
+        robot.reply_text(msg_id, "model success")
+        return
+
     chat.get_gpt3_response(event_p2p.sender.sender_id.user_id, msg_id, text)
 
 
@@ -126,6 +138,33 @@ def handle_text_received_group(event_group: P2ImMessageReceiveV1Data) -> None:
             robot.reply_text(msg_id, "operator <@operator>")
             return
         order.change_operator(message.chat_id, event_group.sender.sender_id.user_id, message.mentions[1].id.user_id)
+        return
+
+    if cmd[0] == "summary":
+        history: List[Message] = robot.get_chat_history(message.chat_id)
+        if len(history) == 0:
+            robot.reply_text(msg_id, "no history")
+            return
+
+        reply_msgs = ""
+        for msg in history:
+            if (msg.sender.id is None or
+                    msg.sender.sender_type != "user" or
+                    msg.deleted is True or
+                    msg.msg_type != "text"):
+                continue
+            sender_name = robot.get_group_member_name(message.chat_id, msg.sender.id)
+            if sender_name is None:
+                continue
+            content_text = lark.json.loads(msg.body.content)['text']
+            # @_user_1 变更经办人 @_user_2 @_user_3 @_user_4
+            if msg.mentions is None or len(msg.mentions) == 0:
+                continue
+            for i in range(len(msg.mentions)):
+                content_text = content_text.replace(msg.mentions[i].key, "@" + msg.mentions[i].name)
+
+            reply_msgs += f"{sender_name}: {content_text}\n"
+        chat.summary(message.chat_id, reply_msgs)
         return
 
 

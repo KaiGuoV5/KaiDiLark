@@ -20,7 +20,8 @@ from lark_oapi.api.im.v1 import (
     UpdateChatResponse, UserId,
     ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse,
     PatchMessageRequest, PatchMessageRequestBody, PatchMessageResponse, GetChatRequest, GetChatResponse,
-    GetChatResponseBody
+    GetChatResponseBody, ListMessageRequest, ListMessageResponse, Message, GetChatMembersRequest,
+    GetChatMembersResponse, ListMember
 )
 
 from utils.config import app_config
@@ -352,3 +353,109 @@ def get_group_list() -> List[ListChat]:
             return []
         group_list.extend(response.data.items)
     return group_list
+
+
+def get_group_members(chat_id: str) -> List[ListMember]:
+    """
+    Retrieves the list of members in a group chat.
+
+    Args:
+        chat_id (str): The ID of the group chat.
+
+    Returns:
+        List[ChatMember]: A list of members in the group chat.
+    """
+    cli = __create_client()
+
+    request: GetChatMembersRequest = GetChatMembersRequest.builder() \
+        .chat_id(chat_id) \
+        .build()
+
+    response: GetChatMembersResponse = cli.im.v1.chat_members.get(request)
+    if not response.success():
+        logger.error(
+            f"get group members failed: code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+        )
+        return []
+
+    group_members = response.data.items
+    while response.data.has_more:
+        request: GetChatMembersRequest = (
+            GetChatMembersRequest.builder()
+            .chat_id(chat_id)
+            .page_token(response.data.page_token)
+            .build()
+        )
+        response: GetChatMembersResponse = cli.im.v1.chat_members.get(request)
+        if not response.success():
+            logger.error(
+                f"get group members failed: code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+            )
+            return []
+        group_members.extend(response.data.items)
+    return response.data.items
+
+
+def get_group_member_name(chat_id: str, user_id: str) -> str:
+    """
+    Retrieves the name of a member in a group chat.
+
+    Args:
+        chat_id (str): The ID of the group chat.
+        user_id (str): The ID of the member.
+
+    Returns:
+        str: The name of the member.
+    """
+    members: List[ListMember] = get_group_members(chat_id)
+    for member in members:
+        if member.member_id == user_id:
+            return member.name
+    return ''
+
+
+def get_chat_history(chat_id: str) -> List[Message]:
+    """
+    Retrieves the history of messages in a group chat.
+
+    Args:
+        chat_id (str): The ID of the group chat.
+
+    Returns:
+        List[Message]: A list of messages in the group chat.
+    """
+    cli = __create_client()
+
+    request: ListMessageRequest = ListMessageRequest.builder() \
+        .container_id_type("chat") \
+        .container_id(chat_id) \
+        .sort_type('ByCreateTimeAsc') \
+        .build()
+
+    response: ListMessageResponse = cli.im.v1.message.list(request)
+    if not response.success():
+        logger.error(
+            f"get chat history failed: code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+        )
+        return []
+
+    message_list = response.data.items
+    while response.data.has_more:
+        request: ListMessageRequest = (
+            ListMessageRequest.builder()
+            .container_id_type("chat")
+            .container_id(chat_id)
+            .sort_type('ByCreateTimeAsc')
+            .page_token(response.data.page_token)
+            .build()
+        )
+
+        response: ListMessageResponse = cli.im.v1.message.list(request)
+        if not response.success():
+            logger.error(
+                f"get chat history failed: code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+            )
+            return []
+        message_list.extend(response.data.items)
+
+    return message_list
