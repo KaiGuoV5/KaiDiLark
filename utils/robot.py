@@ -7,18 +7,17 @@ import os
 import json
 import uuid
 
-from typing import Any, List
+from typing import List
 
 import lark_oapi as lark
 from lark_oapi import logger
 
 from lark_oapi.api.im.v1 import (
-    CreateMessageRequest, CreateMessageRequestBody, CreateMessageResponse, CreateMessageResponseBody,
+    CreateMessageRequest, CreateMessageRequestBody,
     ReplyMessageRequest, ReplyMessageRequestBody, ReplyMessageResponse, ReplyMessageResponseBody,
     CreateChatRequest, CreateChatRequestBody, CreateChatResponse,
-    CreateChatResponseBody, DeleteChatRequest, DeleteChatResponse, UpdateChatRequest, UpdateChatRequestBody,
-    UpdateChatResponse, UserId,
-    ListChat, ListChatRequest, ListChatResponse, ListChatResponseBody, UpdateChatRequestBody, UpdateChatResponse,
+    CreateChatResponseBody, DeleteChatRequest, DeleteChatResponse, UpdateChatRequest,
+    ListChat, ListChatRequest, ListChatResponse, UpdateChatRequestBody, UpdateChatResponse,
     PatchMessageRequest, PatchMessageRequestBody, PatchMessageResponse, GetChatRequest, GetChatResponse,
     GetChatResponseBody, ListMessageRequest, ListMessageResponse, Message, GetChatMembersRequest,
     GetChatMembersResponse, ListMember
@@ -118,7 +117,6 @@ def __reply_msg(msg_id: str, content: dict = None, msg_type: str = 'text') -> Re
     response: ReplyMessageResponse = cli.im.v1.message.reply(request)
     if not response.success():
         logger.error(f"reply msg failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-        return null
     return response.data
 
 

@@ -4,7 +4,6 @@
     This is a sample chat api for lark
 """
 import time
-import datetime
 from openai import OpenAI
 
 import utils.config as config
@@ -18,12 +17,10 @@ def clear_chat_p2p(user_id: str):
     """
     Clears chat data in the database based on the given user ID.
     """
-    new_data = db_chat_p2p.ChatP2PEvent(
+    new_data = db_chat_p2p.ChatP2P(
         user_id=user_id,
         prompts="",
         content="",
-        create_time=datetime.datetime.now().timestamp(),
-        update_time=datetime.datetime.now().timestamp()
     )
     if db_chat_p2p.select_chat_p2p_by_user_id(user_id) is not None:
         db_chat_p2p.clear_chat_p2p_by_user_id(user_id)
@@ -64,8 +61,8 @@ def get_gpt3_response(user_id: str, message_id: str, context):
     card_id = card_send.message_id
     data = db_chat_p2p.select_chat_p2p_by_user_id(user_id)
     if data is not None:
-        prompt = data[2]
-        history_context = data[3]
+        prompt = data.prompts
+        history_context = data.content
         context = prompt + history_context + context
     else:
         msg = "sorry,no chat p2p data"

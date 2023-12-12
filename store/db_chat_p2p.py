@@ -3,84 +3,63 @@
 """
     database for work order
 """
-import os
-import sqlite3
-import dataclasses
-import datetime
+from typing import Type, Optional
+
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, func, event
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+Base = declarative_base()
 
 CHAT_P2P_DB_FILE = '/tmp/chat_p2p.db'
 
 
-@dataclasses.dataclass(init=False)
-class ChatP2PEvent:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    id: int
-    user_id: str
-    model: str
-    prompts: str
-    content: str
-    create_time: int
-    update_time: int
+class ChatP2P(Base):
+    __tablename__ = 'chat_p2p'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(255), nullable=True, default="")
+    model = Column(String(255), nullable=True, default="")
+    prompts = Column(String(1024), nullable=True, default="")
+    content = Column(String(1024), nullable=True, default=False)
+    create_time = Column(DateTime, default=func.current_timestamp())
+    update_time = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 
-def init_db_if_required():
+engine_chat_p2p = create_engine(f"sqlite:///{CHAT_P2P_DB_FILE}")
+# Create the tables if they don't exist
+Base.metadata.create_all(engine_chat_p2p)
+# Create a session
+SessionChatP2P = sessionmaker(bind=engine_chat_p2p)
+# Set the session
+session_chat_p2p = SessionChatP2P()
+
+
+# Define a listener function to update the timestamp before a WorkOrder is updated
+@event.listens_for(ChatP2P, "before_update")
+def update_time(target):
     """
-    Initializes the database if it is required.
+    Update the timestamp of a WorkOrder before it is updated.
 
-    Returns:
-        None
+    Args:
+        target: The WorkOrder instance being updated.
     """
-    if not os.path.exists(CHAT_P2P_DB_FILE):
-        open(CHAT_P2P_DB_FILE, 'w').close()
-    conn = sqlite3.connect(CHAT_P2P_DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chat_p2p (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        user_id TEXT UNIQUE NOT NULL,
-        model TEXT,
-        prompts TEXT, 
-        content TEXT, 
-        create_time TIMESTAMP, 
-        update_time TIMESTAMP
-    )''')
-    conn.commit()
-    conn.close()
+    target.update_time = func.current_timestamp()
 
 
-def insert_chat_p2p(chat_p2p: ChatP2PEvent):
+def insert_chat_p2p(chat_p2p: ChatP2P):
     """
     Insert a p2p chat into the chat_p2p table in the database.
 
     Parameters:
-        chat_p2p (ChatP2PEvent): The chat p2p object to be inserted.
+        chat_p2p (ChatP2P): The chat p2p object to be inserted.
 
     Returns:
         None
     """
-    with sqlite3.connect(CHAT_P2P_DB_FILE) as conn:
-        c = conn.cursor()
-        c.execute(
-            """
-            INSERT INTO chat_p2p
-            (user_id, model, prompts, content, create_time, update_time)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                chat_p2p.user_id,
-                chat_p2p.model,
-                chat_p2p.prompts,
-                chat_p2p.content,
-                chat_p2p.create_time,
-                chat_p2p.update_time
-            ),
-        )
-        conn.commit()
+    session_chat_p2p.add(chat_p2p)
+    session_chat_p2p.commit()
 
 
-def update_chat_p2p_by_user_id(user_id: str,  key: str, content: str):
+def update_chat_p2p_by_user_id(user_id: str, key: str, content: str):
     """
     Updates user chat data in the database based on the given user ID.
 
@@ -92,28 +71,21 @@ def update_chat_p2p_by_user_id(user_id: str,  key: str, content: str):
     Returns:
         None
     """
-    conn = sqlite3.connect(CHAT_P2P_DB_FILE)
-    c = conn.cursor()
-    c.execute(
-        f"UPDATE chat_p2p SET {key} = ?, update_time = ? WHERE user_id = ?",
-        (content, datetime.datetime.now().timestamp(), user_id))
-    conn.commit()
-    conn.close()
+    session_chat_p2p.query(ChatP2P).filter_by(user_id=user_id).update({key: content})
+    session_chat_p2p.commit()
 
 
-def select_chat_p2p_all() -> list:
+def select_chat_p2p_all() -> list[Type[ChatP2P]]:
     """
     Selects all work orders from the database.
+
+    Returns:
+        list[ChatP2P]: A list of selected work orders or an empty list if not found.
     """
-    conn = sqlite3.connect(CHAT_P2P_DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM chat_p2p")
-    result = c.fetchall()
-    conn.close()
-    return result
+    return session_chat_p2p.query(ChatP2P).all()
 
 
-def select_chat_p2p_by_user_id(user_id: str) -> ChatP2PEvent:
+def select_chat_p2p_by_user_id(user_id: str) -> Optional[Type[ChatP2P]]:
     """
     Selects a work order from the database based on the given chat ID.
 
@@ -121,19 +93,14 @@ def select_chat_p2p_by_user_id(user_id: str) -> ChatP2PEvent:
         user_id (str): The user ID of the chat person.
 
     Returns:
-        tuple: A tuple containing the selected work order or None if not found.
+        Optional[ChatP2PEvent]: A selected chat p2p or None if not found.
     """
-    conn = sqlite3.connect(CHAT_P2P_DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM chat_p2p WHERE user_id = ?", (user_id,))
-    result = c.fetchone()
-    conn.close()
-    return result
+    return session_chat_p2p.query(ChatP2P).filter_by(user_id=user_id).first()
 
 
 def clear_chat_p2p_by_user_id(user_id):
-    conn = sqlite3.connect(CHAT_P2P_DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM chat_p2p WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
+    """
+    Clears chat data in the database based on the given user ID.
+    """
+    session_chat_p2p.query(ChatP2P).filter_by(user_id=user_id).delete()
+    session_chat_p2p.commit()

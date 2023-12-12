@@ -12,7 +12,9 @@ import utils.robot as robot
 import utils.config as config
 import store.db_order as db_order
 
-DEFAULT_DEADLINE = (datetime.datetime.now() + datetime.timedelta(minutes=2)).timestamp()
+from typing import List
+
+DEFAULT_DEADLINE = datetime.datetime.now() + datetime.timedelta(minutes=2)
 
 
 def reply(msg_id: str):
@@ -31,15 +33,13 @@ def build(user_id: str, description: str):
     res = robot.create_group(chats_name, id_lists, "Work Order")
     robot.send_card("chat_id", res.chat_id, card.work_order_show(chats_name, user_id, assist_id, description))
 
-    new_order = db_order.WorkOrderEvent()
+    new_order = db_order.WorkOrder()
     new_order.chat_id = res.chat_id
     new_order.applicant = user_id
     new_order.operator = assist_id
     new_order.status = False
     new_order.classify = "Work Order"
     new_order.description = description
-    new_order.create_time = datetime.datetime.now().timestamp()
-    new_order.update_time = datetime.datetime.now().timestamp()
     new_order.deadline = DEFAULT_DEADLINE
 
     db_order.insert_work_order(new_order)
@@ -49,18 +49,16 @@ def check():
     """
     Check the work orders and update their deadlines if necessary.
     """
-    localtime = datetime.datetime.now()
-    data = db_order.select_work_order_by_status_time(False, localtime.timestamp())
+    data = db_order.select_work_order_by_status_time(False)
     if not data:
         logger.debug("No work order to check.")
         return
 
     for result in data:
-        order_id = result[0]
-        chat_id = result[1]
-        operator = result[3]
+        order_id = result.id
+        chat_id = result.chat_id
+        operator = result.operator
         db_order.update_work_order_by_id(order_id, "deadline", DEFAULT_DEADLINE)
-        msg = f"<at id={operator}></at> What's going on now?"
         robot.send_card("chat_id", chat_id, card.work_order_how(operator))
 
 
@@ -74,8 +72,8 @@ def done(chat_id: str):
         logger.error(f"No this work order {chat_name}.")
         return
 
-    order_id = data[0]
-    applicant = data[2]
+    order_id = data.id
+    applicant = data.applicant
     robot.update_group_name(chat_id, chat_name_done)
     db_order.update_work_order_by_id(order_id, "status", 1)
     msg = f"<at id={applicant}></at> The work order has been completed."
@@ -89,7 +87,7 @@ def change_operator(chat_id: str, operator_orig: str, operator: str):
         logger.error(f"No this work order {chat_id}.")
         return
 
-    operator_now = data[3]
+    operator_now = data.operator
     if operator_orig == operator_now:
         msg = f"<at id={operator_orig}></at> The operator has changed to <at id={operator}></at>."
         robot.send_card("chat_id", chat_id, card.markdown(msg))

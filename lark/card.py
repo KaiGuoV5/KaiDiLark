@@ -4,12 +4,8 @@
     lark.card
 """
 from typing import List
-
-from lark_oapi.api.contact.v3 import Department
 from lark_oapi.api.im.v1 import ListChat
-
 import datetime
-import json
 
 
 def hello():

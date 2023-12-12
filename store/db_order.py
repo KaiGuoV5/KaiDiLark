@@ -3,90 +3,64 @@
 """
     database for work order
 """
-import os
-import sqlite3
-import dataclasses
 import datetime
+from typing import List, Type, Optional
+
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, func, event
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+Base = declarative_base()
 
 WORK_ORDER_DB_FILE = '/tmp/work_order.db'
 
 
-@dataclasses.dataclass(init=False)
-class WorkOrderEvent:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    id: int
-    chat_id: str
-    applicant: str
-    operator: str
-    status: bool
-    classify: str
-    description: str
-    create_time: int
-    update_time: int
-    deadline: int
+class WorkOrder(Base):
+    __tablename__ = 'work_order'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_id = Column(String(255), nullable=True, default="")
+    applicant = Column(String(255), nullable=True, default="")
+    operator = Column(String(255), nullable=True, default="")
+    status = Column(Boolean, nullable=True, default=False)
+    classify = Column(String(255), nullable=True, default="")
+    description = Column(String(255), nullable=True, default="")
+    create_time = Column(DateTime, default=func.current_timestamp())
+    update_time = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    deadline = Column(DateTime, nullable=True, default=func.current_timestamp())
 
 
-def init_db_if_required():
+engine_work_order = create_engine(f"sqlite:///{WORK_ORDER_DB_FILE}")
+# Create the tables if they don't exist
+Base.metadata.create_all(engine_work_order)
+# Create a session
+SessionWorkOrder = sessionmaker(bind=engine_work_order)
+# Set the session
+session_work_order = SessionWorkOrder()
+
+
+# Define a listener function to update the timestamp before a WorkOrder is updated
+@event.listens_for(WorkOrder, "before_update")
+def update_time(target):
     """
-    Initializes the database if it is required.
+    Update the timestamp of a WorkOrder before it is updated.
 
-    Returns:
-        None
+    Args:
+        target: The WorkOrder instance being updated.
     """
-    if not os.path.exists(WORK_ORDER_DB_FILE):
-        open(WORK_ORDER_DB_FILE, 'w').close()
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS work_order (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        chat_id TEXT, 
-        applicant TEXT, 
-        operator TEXT, 
-        status INTEGER, 
-        classify TEXT, 
-        description TEXT, 
-        create_time TIMESTAMP, 
-        update_time TIMESTAMP, 
-        deadline TIMESTAMP
-    )''')
-    conn.commit()
-    conn.close()
+    target.update_time = func.current_timestamp()
 
 
-def insert_work_order(work_order: WorkOrderEvent):
+def insert_work_order(work_order: WorkOrder):
     """
     Insert a work order into the work_order table in the database.
 
     Parameters:
-        work_order (WorkOrderEvent): The work order object to be inserted.
+        work_order (WorkOrder): The work order to be inserted.
 
     Returns:
         None
     """
-    with sqlite3.connect(WORK_ORDER_DB_FILE) as conn:
-        c = conn.cursor()
-        c.execute(
-            """
-            INSERT INTO work_order
-            (chat_id, applicant, operator, status, classify, description, create_time, update_time, deadline)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                work_order.chat_id,
-                work_order.applicant,
-                work_order.operator,
-                work_order.status,
-                work_order.classify,
-                work_order.description,
-                work_order.create_time,
-                work_order.update_time,
-                work_order.deadline,
-            ),
-        )
-        conn.commit()
+    session_work_order.add(work_order)
+    session_work_order.commit()
 
 
 def update_work_order_by_id(order_id: int, key: str, content):
@@ -104,13 +78,8 @@ def update_work_order_by_id(order_id: int, key: str, content):
     Raises:
         None
     """
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute(
-        f"UPDATE work_order SET {key} = ?, update_time = ? WHERE id = ?",
-        (content, datetime.datetime.now().timestamp(), order_id))
-    conn.commit()
-    conn.close()
+    session_work_order.query(WorkOrder).filter_by(id=order_id).update({key: content})
+    session_work_order.commit()
 
 
 def update_work_order_by_chat_id(chat_id: str,  key: str, content: str):
@@ -125,28 +94,21 @@ def update_work_order_by_chat_id(chat_id: str,  key: str, content: str):
     Returns:
         None
     """
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute(
-        f"UPDATE work_order SET {key} = ?, update_time = ? WHERE chat_id = ?",
-        (content, datetime.datetime.now().timestamp(), chat_id))
-    conn.commit()
-    conn.close()
+    session_work_order.query(WorkOrder).filter_by(chat_id=chat_id).update({key: content})
+    session_work_order.commit()
 
 
-def select_work_order_all() -> list:
+def select_work_order_all() -> List[Type[WorkOrder]]:
     """
     Selects all work orders from the database.
+
+    Returns:
+        list[WorkOrder]: A list of selected work orders or an empty list if not found.
     """
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM work_order")
-    result = c.fetchall()
-    conn.close()
-    return result
+    return session_work_order.query(WorkOrder).all()
 
 
-def select_work_order_by_chat_id(chat_id: str) -> WorkOrderEvent:
+def select_work_order_by_chat_id(chat_id: str) -> Optional[Type[WorkOrder]]:
     """
     Selects a work order from the database based on the given chat ID.
 
@@ -154,33 +116,28 @@ def select_work_order_by_chat_id(chat_id: str) -> WorkOrderEvent:
         chat_id (str): The chat ID of the work order to select.
 
     Returns:
-        tuple: A tuple containing the selected work order or None if not found.
+        Optional[WorkOrder]: A selected work order or None if not found.
     """
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM work_order WHERE chat_id = ?", (chat_id,))
-    result = c.fetchone()
-    conn.close()
-    return result
+    return session_work_order.query(WorkOrder).filter_by(chat_id=chat_id).first()
 
 
-def select_work_order_by_status_time(status: bool, time: float) -> list[WorkOrderEvent]:
+def select_work_order_by_status_time(status) -> List[Type[WorkOrder]]:
     """
     Selects a work order from the database based on the given status and time.
 
     Parameters:
         status (bool): The status of the work order to select.
-        time (int): The time of the work order to select.
 
     Returns:
-        tuple: A tuple containing the selected work order or None if not found.
+        list[WorkOrder]: A list of selected work orders or an empty list if not found.
     """
-    conn = sqlite3.connect(WORK_ORDER_DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM work_order WHERE status = ? AND deadline < ?", (status, time))
-    result = c.fetchall()
-    conn.close()
-    return result
+    localtime = datetime.datetime.now()
+    return (
+        session_work_order.query(WorkOrder)
+        .filter(WorkOrder.status == status)
+        .filter(WorkOrder.deadline >= localtime)
+        .all()
+    )
 
 
 if __name__ == '__main__':

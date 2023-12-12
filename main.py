@@ -29,8 +29,6 @@ import utils.robot as robot
 import lark.card as card
 import lark.chat as chat
 import lark.work_order as order
-import store.db_order as db_order
-import store.db_chat_p2p as db_chat_p2p
 
 app = Flask(__name__)
 
@@ -272,9 +270,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', default=7788, type=int, help='port number')
     args = parser.parse_args()
-
-    db_order.init_db_if_required()
-    db_chat_p2p.init_db_if_required()
 
     scheduler.init_app(app)
     scheduler.add_job(id='check_order', func=order.check, trigger=CronTrigger.from_crontab('* 1-18 * * *'))
