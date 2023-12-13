@@ -33,6 +33,10 @@ def insert_prompt(user_id: str, prompt: str):
     db_chat_p2p.update_chat_p2p_by_user_id(user_id, "prompts", prompt)
 
 
+def get_chat_p2p(user_id: str):
+    return db_chat_p2p.select_chat_p2p_by_user_id(user_id).prompts
+
+
 def set_chat_model(user_id: str, model: str):
     clear_chat_p2p(user_id)
     db_chat_p2p.update_chat_p2p_by_user_id(user_id, "model", model)

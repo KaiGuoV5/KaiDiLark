@@ -165,7 +165,7 @@ def work_order_build():
                 "actions": [
                     {
                         "tag": "button",
-                        "text": {"content": "Artificial Service", "tag": "plain_text"},
+                        "text": {"content": "Choose Service", "tag": "plain_text"},
                         "type": "primary",
                         "value": {
                             "action": "work_order",

@@ -135,29 +135,14 @@ def select_work_order_by_status_time(status) -> List[Type[WorkOrder]]:
     return (
         session_work_order.query(WorkOrder)
         .filter(WorkOrder.status == status)
-        .filter(WorkOrder.deadline >= localtime)
+        .filter(WorkOrder.deadline <= localtime)
         .all()
     )
 
 
 if __name__ == '__main__':
-    # init_db_if_required()
-    # new = WorkOrderEvent()
-    # new.chat_id = "123"
-    # new.applicant = "123"
-    # new.operator = "123"
-    # new.status = False
-    # new.classify = "123"
-    # new.description = "123"
-    # new.create_time = datetime.datetime.now().timestamp()
-    # new.update_time = datetime.datetime.now().timestamp()
-    # new.deadline = (datetime.datetime.now()+datetime.timedelta(days=1)).timestamp()
-    # insert_work_order(new)
-    ret = select_work_order_all()
-    # ret = select_work_order_by_status_time(False, (datetime.datetime.now()+datetime.timedelta(days=1)).timestamp())
-    print(ret)
-    ret = select_work_order_by_chat_id("123")
-    print(ret)
 
-    # get_all_chat_events()
-    # app_logger.info(get_chat_context_by_user_id("ab1cd2ef"))
+    ret = select_work_order_all()
+    for i in ret:
+        print(i.chat_id, i.applicant, i.operator, i.status, i.classify,
+              i.description, i.create_time, i.update_time, i.deadline)
